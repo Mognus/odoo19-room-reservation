@@ -14,8 +14,9 @@ venv/
 .mypy_cache/
 
 # Odoo runtime
+# Note: config/odoo.conf is intentionally tracked — it is part of the
+# reproducible development setup and holds no real credentials.
 *.log
-odoo.conf
 .odoorc
 filestore/
 data_dir/
