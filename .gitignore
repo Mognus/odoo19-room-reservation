@@ -7,6 +7,8 @@ __pycache__/
 *.egg-info/
 .venv/
 venv/
+# Odoo sources, cloned locally only for language server support
+.odoo-src/
 
 # Tooling
 .pytest_cache/

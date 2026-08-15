@@ -1,0 +1,4 @@
+{
+  "extraPaths": [".odoo-src"],
+  "exclude": [".odoo-src", "**/__pycache__"]
+}
