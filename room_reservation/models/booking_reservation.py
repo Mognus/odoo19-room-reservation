@@ -1,5 +1,5 @@
 from odoo import api, fields, models
-from odoo.exceptions import ValidationError
+from odoo.exceptions import UserError, ValidationError
 
 STATES = [
     ("draft", "Draft"),
@@ -21,6 +21,17 @@ class BookingReservation(models.Model):
     _description = "Room Reservation"
     _inherit = ["mail.thread", "mail.activity.mixin"]
     _order = "start desc"
+
+    # Allowed state changes. Keeping them as data means adding a state changes
+    # this mapping instead of every action method, and a single test can cover
+    # every combination.
+    _TRANSITIONS = {
+        "draft": {"to_approve", "cancelled"},
+        "to_approve": {"confirmed", "draft", "cancelled"},
+        "confirmed": {"done", "cancelled"},
+        "done": set(),
+        "cancelled": {"draft"},
+    }
 
     name = fields.Char(
         default="/",
@@ -175,6 +186,47 @@ class BookingReservation(models.Model):
         if "start" in vals:
             self._check_start_not_in_past()
         return res
+
+    def _transition_to(self, target, values=None):
+        """Single entry point for state changes, validated against _TRANSITIONS.
+
+        Actions and the scheduled job both go through here, so the rules can
+        never drift apart between the user interface and automation.
+        """
+        labels = dict(self._fields["state"]._description_selection(self.env))
+        for reservation in self:
+            if target not in self._TRANSITIONS[reservation.state]:
+                raise UserError(
+                    self.env._(
+                        "%(reference)s cannot move from %(current)s to %(target)s.",
+                        reference=reservation.display_name,
+                        current=labels[reservation.state],
+                        target=labels[target],
+                    )
+                )
+        self.write({"state": target, **(values or {})})
+
+    def action_submit(self):
+        self._transition_to("to_approve")
+
+    def action_approve(self):
+        self._transition_to(
+            "confirmed",
+            {
+                "approver_id": self.env.user.id,
+                "approval_date": fields.Datetime.now(),
+            },
+        )
+
+    def action_cancel(self):
+        self._transition_to("cancelled")
+
+    def action_done(self):
+        self._transition_to("done")
+
+    def action_reset_to_draft(self):
+        # Clear the approval trail so a resubmitted request is approved again.
+        self._transition_to("draft", {"approver_id": False, "approval_date": False})
 
     def _check_start_not_in_past(self):
         now = fields.Datetime.now()
