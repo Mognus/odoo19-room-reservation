@@ -30,8 +30,6 @@ Ressourcenkonzept. Dieses Modul schließt genau diese Lücke.
 
 ### Datenmodell
 
-<!-- TODO: Feldlisten ergänzen, sobald die Models stehen -->
-
 | Model | Zweck |
 | --- | --- |
 | `booking.room` | Buchbarer Raum |
@@ -42,34 +40,118 @@ Ressourcenkonzept. Dieses Modul schließt genau diese Lücke.
 > Der Namespace `booking.*` wird bewusst statt `room.*` verwendet, um
 > Kollisionen mit dem Enterprise-Modul `room` auszuschließen.
 
+**`booking.room.equipment`**
+
+| Feld | Typ | Anmerkung |
+| --- | --- | --- |
+| `name` | Char | erforderlich, übersetzbar, systemweit eindeutig |
+| `active` | Boolean | Archivierung statt Löschen |
+| `room_ids` | Many2many | Gegenstück zu `booking.room.equipment_ids` |
+
+**`booking.room`**
+
+| Feld | Typ | Anmerkung |
+| --- | --- | --- |
+| `name` | Char | erforderlich |
+| `location` | Char | Gebäude oder Etage |
+| `capacity` | Integer | erforderlich, per SQL-Constraint größer null |
+| `description` | Text | |
+| `color` | Integer | Farbgebung im Kalender |
+| `active` | Boolean | Archivierung |
+| `equipment_ids` | Many2many | vorhandene Ausstattung |
+| `reservation_ids` | One2many | Buchungen des Raums |
+| `reservation_count` | Integer | berechnet, aggregiert per `_read_group` |
+
+**`booking.reservation`**
+
+| Feld | Typ | Anmerkung |
+| --- | --- | --- |
+| `name` | Char | Referenz aus `ir.sequence` |
+| `room_id` | Many2one | erforderlich, `ondelete="restrict"`, indiziert |
+| `user_id` | Many2one | Organisator, Vorgabe ist der aktuelle Benutzer |
+| `start` / `stop` | Datetime | erforderlich, per SQL-Constraint `stop > start` |
+| `duration` | Float | berechnet und gespeichert, in Stunden |
+| `attendee_count` | Integer | per SQL-Constraint größer null |
+| `purpose` | Char | erforderlich |
+| `required_equipment_ids` | Many2many | gewünschte Ausstattung |
+| `state` | Selection | mit Änderungsverfolgung |
+| `approver_id` | Many2one | wer freigegeben hat, schreibgeschützt |
+| `approval_date` | Datetime | schreibgeschützt |
+
+Das Model erbt `mail.thread` und `mail.activity.mixin` und erhält dadurch
+Chatter, Follower und Aktivitäten aus dem Odoo-Standard.
+
 ### Status-Workflow
 
-<!-- TODO: Übergänge und Berechtigungen final dokumentieren -->
+```
+        ┌──────────────────────────────┐
+        ↓                              │
+     draft ──→ to_approve ──→ confirmed ──→ done
+        │           │              │
+        └───────────┴──────────────┴──→ cancelled ──┐
+                                              ↑     │
+                                              └─────┘ zurück nach draft
+```
 
-```
-draft → to_approve → confirmed → done
-             ↓            ↓
-         cancelled    cancelled
-```
+Erlaubte Übergänge sind als Datenstruktur `_TRANSITIONS` hinterlegt und werden
+zentral in `_transition_to()` geprüft. Ein unzulässiger Wechsel wirft einen
+`UserError` mit den Klartextbezeichnungen beider Zustände.
+
+| Von | Erlaubt nach |
+| --- | --- |
+| `draft` | `to_approve`, `cancelled` |
+| `to_approve` | `confirmed`, `draft`, `cancelled` |
+| `confirmed` | `done`, `cancelled` |
+| `done` | — |
+| `cancelled` | `draft` |
+
+Ein Raum gilt als belegt in den Zuständen `to_approve`, `confirmed` und `done`.
+Entwürfe und Stornierungen blockieren ihn nicht.
 
 ### Geschäftsregeln
 
-<!-- TODO: je Regel auf Implementierung und Test verweisen -->
+<!-- TODO: Verweise auf die Tests ergänzen, sobald diese stehen -->
 
-1. Keine Doppelbelegung eines Raums für überschneidende Zeiträume
-2. Teilnehmerzahl darf die Raumkapazität nicht überschreiten
-3. Ende muss nach dem Beginn liegen
-4. Keine Buchung in der Vergangenheit
-5. Freigabe ausschließlich durch die Manager-Gruppe
+| # | Regel | Umsetzung |
+| --- | --- | --- |
+| 1 | Keine Doppelbelegung eines Raums für überschneidende Zeiträume | `_check_no_overlap` |
+| 2 | Teilnehmerzahl darf die Raumkapazität nicht überschreiten | `_check_capacity`, zusätzlich `_onchange_attendee_count` als Hinweis im Formular |
+| 3 | Der Raum muss die gewünschte Ausstattung bieten | `_check_required_equipment` |
+| 4 | Ende muss nach dem Beginn liegen | SQL-Constraint `_stop_after_start` |
+| 5 | Keine Buchung in der Vergangenheit | `_check_start_not_in_past`, aufgerufen aus `create` und aus `write`, sofern der Zeitraum verschoben wird |
+| 6 | Freigabe ausschließlich durch die Manager-Gruppe | `action_approve` |
+
+Die Überschneidungsprüfung nutzt halboffene Intervalle
+(`start < other.stop AND stop > other.start`), sodass eine Buchung genau dann
+beginnen darf, wenn die vorherige endet. Die Bedingung wird als Domain an die
+Datenbank übergeben und mit `limit=1` ausgewertet, statt Datensätze zu laden.
 
 ### Berechtigungen
 
-<!-- TODO: Zugriffsmatrix (Model × Gruppe × CRUD) ergänzen -->
+<!-- TODO: Zugriffsmatrix (Model × Gruppe × CRUD) ergänzen, sobald die
+     ir.model.access.csv steht -->
 
 | Gruppe | Rechte |
 | --- | --- |
 | `group_booking_user` | eigene Reservierungen anlegen und bearbeiten |
 | `group_booking_manager` | Räume verwalten, alle Reservierungen freigeben |
+
+`group_booking_manager` impliziert `group_booking_user`, dieser wiederum
+`base.group_user`. Rechte werden dadurch nur einmal auf der untersten Stufe
+vergeben.
+
+Für Reservierungen sind Lese- und Schreibzugriff bewusst getrennt geregelt:
+
+| Regel | Operationen | Domain | Gruppe |
+| --- | --- | --- | --- |
+| `reservation_rule_read_all` | lesen | alle Datensätze | User |
+| `reservation_rule_own_write` | schreiben, anlegen, löschen | `user_id = user.id` | User |
+| `reservation_rule_manager_all` | alle | alle Datensätze | Manager |
+
+Damit ist die Raumbelegung für alle einsehbar, während Änderungen beim
+Organisator bleiben. Manager erben die einschränkende Regel, werden durch die
+dritte Regel aber wieder aufgeweitet, da Record Rules innerhalb und zwischen
+Gruppen mit ODER verknüpft werden.
 
 ### Views und Navigation
 
@@ -107,9 +189,12 @@ Umsetzung in aufeinander aufbauenden Schritten, jeder Schritt ein eigener Commit
 3. **Geschäftslogik** — Constraints, Status-Übergänge, computed fields
 4. **Security** — Gruppen, Zugriffsrechte, Record Rules
 5. **Views** — list, form, search, calendar sowie Menüs und Aktionen
-6. **Automatisierung** — Sequenz, Scheduled Action, Aktivität für Genehmiger
-7. **Tests** — Geschäftsregeln, Status-Übergänge, Zugriffsbeschränkung
-8. **Dokumentation** — README vervollständigen
+6. **Erweiterung des Standards** — `res.users` um eigene Reservierungen
+   ergänzen und das bestehende Benutzerformular per XPath um einen
+   Smart-Button erweitern
+7. **Automatisierung** — Sequenz, Scheduled Action, Aktivität für Genehmiger
+8. **Tests** — Geschäftsregeln, Status-Übergänge, Zugriffsbeschränkung
+9. **Dokumentation** — README vervollständigen
 
 ### Abgrenzung (Non-Goals)
 
