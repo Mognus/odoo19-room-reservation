@@ -131,29 +131,82 @@ Bewusst nicht umgesetzt, um den Umfang der Probearbeit zu wahren:
 
 ### Voraussetzungen
 
-<!-- TODO: konkrete Versionen ergänzen -->
-
 - Odoo 19.0 Community Edition
-- PostgreSQL
-- Python (Version gemäß Odoo 19 Anforderungen)
+- PostgreSQL 16
+- Python ≥ 3.10 (`MIN_PY_VERSION` laut `odoo/release.py`)
 
-### Installation
+Für den mitgelieferten Weg über Container genügen Docker und Docker Compose;
+Odoo und PostgreSQL bringt das Setup selbst mit.
 
-<!-- TODO: getestete Schritte einsetzen -->
+### Installation in eine bestehende Odoo-Instanz
+
+Nur das Verzeichnis `room_reservation/` ist das eigentliche Modul.
 
 ```bash
-# 1. Repository in den Addons-Pfad klonen
+git clone https://github.com/Mognus/odoo19-room-reservation.git
+cp -r odoo19-room-reservation/room_reservation /pfad/zum/addons-verzeichnis/
+```
 
-# 2. Odoo mit aktualisierter Modulliste starten
+Anschließend Odoo neu starten, unter *Apps* die Modulliste aktualisieren und
+„Room Reservations" installieren. Alternativ per Kommandozeile:
 
-# 3. Modul über Apps installieren
+```bash
+odoo -d <datenbank> -i room_reservation --stop-after-init
+```
+
+### Installation über Docker Compose
+
+```bash
+git clone https://github.com/Mognus/odoo19-room-reservation.git
+cd odoo19-room-reservation
+
+make install   # Datenbank anlegen und Modul installieren
+make up        # Stack starten
+```
+
+Odoo ist danach unter http://localhost:8069 erreichbar, Anmeldung mit
+`admin` / `admin`.
+
+Ein vollständiger Neuaufbau von null, der die Installierbarkeit auf einer
+frischen Instanz nachweist:
+
+```bash
+make fresh     # löscht alle Volumes und installiert neu
 ```
 
 ### Tests ausführen
 
-<!-- TODO: exakten Befehl einsetzen -->
+```bash
+make test
+```
+
+Entspricht:
 
 ```bash
+docker compose run --rm odoo odoo -d rooms -u room_reservation \
+    --test-enable --test-tags /room_reservation --stop-after-init
+```
+
+### Entwicklungsumgebung
+
+Ausgeführt wird ausschließlich im Container. Lokal wird nichts installiert.
+
+Damit ein Language Server `from odoo import …` auflösen kann, werden einmalig
+die Odoo-Quellen flach ausgecheckt:
+
+```bash
+make dev-init
+```
+
+Das legt `.odoo-src/` an, von der Versionierung ausgeschlossen und
+ausschließlich als Nachschlagewerk gedacht. `pyrightconfig.json` verweist über
+`extraPaths` darauf. Die Laufzeitabhängigkeiten von Odoo werden bewusst nicht
+lokal installiert, da Odoo im Container läuft.
+
+Für das Linting genügt ein systemweit installiertes `ruff`:
+
+```bash
+make lint
 ```
 
 ---
