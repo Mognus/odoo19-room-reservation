@@ -1,4 +1,12 @@
 {
   "extraPaths": [".odoo-src"],
-  "exclude": [".odoo-src", "**/__pycache__"]
+  "exclude": [".odoo-src", "**/__pycache__"],
+
+  // Odoo resolves relations from strings at runtime ("booking.room"), so a
+  // static checker only sees BaseModel and cannot know the concrete fields.
+  // Most Field.__init__ parameters are unannotated for the same dynamic
+  // reasons. Both checks are therefore structurally unusable here, while
+  // completion, go-to-definition and unresolved imports keep working.
+  "reportAttributeAccessIssue": "none",
+  "reportArgumentType": "none"
 }
