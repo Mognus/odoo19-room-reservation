@@ -1,4 +1,4 @@
-from odoo import fields, models
+from odoo import api, fields, models
 
 
 class BookingRoom(models.Model):
@@ -28,7 +28,27 @@ class BookingRoom(models.Model):
         string="Equipment",
     )
 
+    reservation_ids = fields.One2many(
+        comodel_name="booking.reservation",
+        inverse_name="room_id",
+        string="Reservations",
+    )
+    reservation_count = fields.Integer(compute="_compute_reservation_count")
+
     _capacity_positive = models.Constraint(
         "CHECK(capacity > 0)",
         "Room capacity must be greater than zero.",
     )
+
+    @api.depends("reservation_ids")
+    def _compute_reservation_count(self):
+        # read_group aggregates in SQL instead of loading every reservation.
+        counts = dict(
+            self.env["booking.reservation"]._read_group(
+                domain=[("room_id", "in", self.ids)],
+                groupby=["room_id"],
+                aggregates=["__count"],
+            )
+        )
+        for room in self:
+            room.reservation_count = counts.get(room, 0)
