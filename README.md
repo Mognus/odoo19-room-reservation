@@ -8,9 +8,9 @@ mehrstufiger Freigabe, Kapazitäts- und Ausstattungsprüfung.
 
 ---
 
-## 1. Funktionsbeschreibung
+# 1. Funktionsbeschreibung
 
-### Motivation
+## Motivation
 
 Odoo 19 **Community** enthält kein Raumbuchungssystem. Das Modul `room`
 („Meeting Rooms") ist Enterprise-exklusiv und hängt zudem an `web_gantt`,
@@ -18,7 +18,7 @@ das ebenfalls nur in Enterprise verfügbar ist. Ebenso `appointment`.
 In CE bleibt lediglich `calendar` — Termine ohne jedes Raum- oder
 Ressourcenkonzept. Dieses Modul schließt genau diese Lücke.
 
-### Fachlicher Umfang
+## Fachlicher Umfang
 
 <!-- TODO: nach Implementierung final beschreiben -->
 
@@ -28,7 +28,7 @@ Ressourcenkonzept. Dieses Modul schließt genau diese Lücke.
 - **Konfliktfreiheit** — Doppelbelegungen werden systemseitig verhindert
 - **Automatik** — überfällige, noch nicht genehmigte Anträge verfallen
 
-### Datenmodell
+## Datenmodell
 
 | Model | Zweck |
 | --- | --- |
@@ -40,7 +40,7 @@ Ressourcenkonzept. Dieses Modul schließt genau diese Lücke.
 > Der Namespace `booking.*` wird bewusst statt `room.*` verwendet, um
 > Kollisionen mit dem Enterprise-Modul `room` auszuschließen.
 
-**`booking.room.equipment`**
+### `booking.room.equipment`
 
 | Feld | Typ | Anmerkung |
 | --- | --- | --- |
@@ -48,7 +48,7 @@ Ressourcenkonzept. Dieses Modul schließt genau diese Lücke.
 | `active` | Boolean | Archivierung statt Löschen |
 | `room_ids` | Many2many | Gegenstück zu `booking.room.equipment_ids` |
 
-**`booking.room`**
+### `booking.room`
 
 | Feld | Typ | Anmerkung |
 | --- | --- | --- |
@@ -62,7 +62,7 @@ Ressourcenkonzept. Dieses Modul schließt genau diese Lücke.
 | `reservation_ids` | One2many | Buchungen des Raums |
 | `reservation_count` | Integer | berechnet, aggregiert per `_read_group` |
 
-**`booking.reservation`**
+### `booking.reservation`
 
 | Feld | Typ | Anmerkung |
 | --- | --- | --- |
@@ -81,7 +81,7 @@ Ressourcenkonzept. Dieses Modul schließt genau diese Lücke.
 Das Model erbt `mail.thread` und `mail.activity.mixin` und erhält dadurch
 Chatter, Follower und Aktivitäten aus dem Odoo-Standard.
 
-### Status-Workflow
+## Status-Workflow
 
 ```
         ┌──────────────────────────────┐
@@ -108,7 +108,7 @@ zentral in `_transition_to()` geprüft. Ein unzulässiger Wechsel wirft einen
 Ein Raum gilt als belegt in den Zuständen `to_approve`, `confirmed` und `done`.
 Entwürfe und Stornierungen blockieren ihn nicht.
 
-### Geschäftsregeln
+## Geschäftsregeln
 
 <!-- TODO: Verweise auf die Tests ergänzen, sobald diese stehen -->
 
@@ -126,10 +126,7 @@ Die Überschneidungsprüfung nutzt halboffene Intervalle
 beginnen darf, wenn die vorherige endet. Die Bedingung wird als Domain an die
 Datenbank übergeben und mit `limit=1` ausgewertet, statt Datensätze zu laden.
 
-### Berechtigungen
-
-<!-- TODO: Zugriffsmatrix (Model × Gruppe × CRUD) ergänzen, sobald die
-     ir.model.access.csv steht -->
+## Berechtigungen
 
 | Gruppe | Rechte |
 | --- | --- |
@@ -140,7 +137,28 @@ Datenbank übergeben und mit `limit=1` ausgewertet, statt Datensätze zu laden.
 `base.group_user`. Rechte werden dadurch nur einmal auf der untersten Stufe
 vergeben.
 
-Für Reservierungen sind Lese- und Schreibzugriff bewusst getrennt geregelt:
+### Zugriffsrechte je Model
+
+Aus `security/ir.model.access.csv`. Diese Ebene entscheidet, ob eine Gruppe ein
+Model überhaupt anfassen darf; welche Datensätze davon, regeln erst die
+Record Rules darunter.
+
+| Model | Gruppe | Lesen | Schreiben | Anlegen | Löschen |
+| --- | --- | :-: | :-: | :-: | :-: |
+| `booking.room.equipment` | User | ✅ | — | — | — |
+| `booking.room.equipment` | Manager | ✅ | ✅ | ✅ | ✅ |
+| `booking.room` | User | ✅ | — | — | — |
+| `booking.room` | Manager | ✅ | ✅ | ✅ | ✅ |
+| `booking.reservation` | User | ✅ | ✅ | ✅ | ✅ |
+| `booking.reservation` | Manager | ✅ | ✅ | ✅ | ✅ |
+
+Stammdaten pflegt also ausschließlich der Manager, während Buchungen jeder
+anlegen darf. Dass beim Benutzer in der Zeile `booking.reservation` überall ein
+Haken steht, wird durch die Record Rules eingeschränkt.
+
+### Record Rules für Reservierungen
+
+Lese- und Schreibzugriff sind bewusst getrennt geregelt:
 
 | Regel | Operationen | Domain | Gruppe |
 | --- | --- | --- | --- |
@@ -153,15 +171,15 @@ Organisator bleiben. Manager erben die einschränkende Regel, werden durch die
 dritte Regel aber wieder aufgeweitet, da Record Rules innerhalb und zwischen
 Gruppen mit ODER verknüpft werden.
 
-### Views und Navigation
+## Views und Navigation
 
 <!-- TODO: ergänzen -->
 
 ---
 
-## 2. Herangehensweise
+# 2. Herangehensweise
 
-### Architekturentscheidungen
+## Architekturentscheidungen
 
 | Entscheidung | Begründung | Verworfene Alternative |
 | --- | --- | --- |
@@ -177,7 +195,7 @@ Gruppen mit ODER verknüpft werden.
 | Cron-Schwelle über `ir.config_parameter` | Konfigurierbar statt hardcodiert; Tests setzen den Parameter, statt die Systemzeit zu manipulieren | Konstante im Code |
 | Referenz über `ir.sequence` | Odoo-Standard für fachliche Belegnummern | Computed `display_name` aus Raum und Datum — nicht stabil referenzierbar |
 
-### Vorgehen
+## Vorgehen
 
 Umsetzung in aufeinander aufbauenden Schritten, jeder Schritt ein eigener Commit.
 
@@ -196,7 +214,7 @@ Umsetzung in aufeinander aufbauenden Schritten, jeder Schritt ein eigener Commit
 8. **Tests** — Geschäftsregeln, Status-Übergänge, Zugriffsbeschränkung
 9. **Dokumentation** — README vervollständigen
 
-### Abgrenzung (Non-Goals)
+## Abgrenzung (Non-Goals)
 
 Bewusst nicht umgesetzt, um den Umfang der Probearbeit zu wahren:
 
@@ -212,9 +230,9 @@ Bewusst nicht umgesetzt, um den Umfang der Probearbeit zu wahren:
 
 ---
 
-## 3. Installationsanleitung
+# 3. Installationsanleitung
 
-### Voraussetzungen
+## Voraussetzungen
 
 - Odoo 19.0 Community Edition
 - PostgreSQL 16
@@ -223,7 +241,7 @@ Bewusst nicht umgesetzt, um den Umfang der Probearbeit zu wahren:
 Für den mitgelieferten Weg über Container genügen Docker und Docker Compose;
 Odoo und PostgreSQL bringt das Setup selbst mit.
 
-### Installation in eine bestehende Odoo-Instanz
+## Installation in eine bestehende Odoo-Instanz
 
 Nur das Verzeichnis `room_reservation/` ist das eigentliche Modul.
 
@@ -239,7 +257,7 @@ Anschließend Odoo neu starten, unter *Apps* die Modulliste aktualisieren und
 odoo -d <datenbank> -i room_reservation --stop-after-init
 ```
 
-### Installation über Docker Compose
+## Installation über Docker Compose
 
 ```bash
 git clone https://github.com/Mognus/odoo19-room-reservation.git
@@ -259,7 +277,7 @@ frischen Instanz nachweist:
 make fresh     # löscht alle Volumes und installiert neu
 ```
 
-### Tests ausführen
+## Tests ausführen
 
 ```bash
 make test
@@ -278,7 +296,7 @@ Ein anderer Name lässt sich ohne Änderung am Makefile übergeben:
 make test DB=scratch
 ```
 
-### Entwicklungsumgebung
+## Entwicklungsumgebung
 
 Ausgeführt wird ausschließlich im Container. Lokal wird nichts installiert.
 
@@ -300,9 +318,15 @@ Für das Linting genügt ein systemweit installiertes `ruff`:
 make lint
 ```
 
+Die Konfiguration in `pyproject.toml` nimmt drei Odoo-Eigenheiten aus, die ein
+generischer Linter zwangsläufig falsch bewertet: Die `__init__.py`-Ketten sind
+Odoos Lademechanismus und keine ungenutzten Importe, das Manifest ist ein
+Dict-Literal statt ausführbarer Code, und Models werden über veränderliche
+Klassenattribute deklariert. Jede Ausnahme ist an Ort und Stelle begründet.
+
 ---
 
-## 4. Zeitaufwand
+# 4. Zeitaufwand
 
 <!-- TODO: Ist-Werte nach Abschluss eintragen -->
 
@@ -318,37 +342,37 @@ make lint
 
 ---
 
-## 5. Definition of Done
+# 5. Definition of Done
 
 <!-- TODO: abhaken, sobald erfüllt und verifiziert -->
 
-**Funktion**
+### Funktion
 
 - [ ] Modul ist auf einer frischen Odoo 19 CE Instanz ohne Fehler installierbar
 - [ ] Deinstallation und Neuinstallation funktionieren fehlerfrei
 - [ ] Alle Geschäftsregeln sind implementiert und greifen
 - [ ] Der Status-Workflow ist vollständig durchlaufbar
 
-**Codequalität**
+### Codequalität
 
-- [ ] PEP8-konform, geprüft mit Linter
+- [ ] PEP8-konform, geprüft mit `ruff`
 - [ ] Odoo-Konventionen für Struktur, Benennung und Manifest eingehalten
 - [ ] Fehlerfälle werfen `UserError` bzw. `ValidationError` mit klarer Meldung
 - [ ] Benutzertexte sind übersetzbar
 
-**Security**
+### Security
 
 - [ ] Zugriffsrechte für alle Models definiert
 - [ ] Record Rules greifen, aus Benutzersicht verifiziert
 
-**Tests**
+### Tests
 
 - [ ] Automatisierte Tests für alle Geschäftsregeln
 - [ ] Tests für erlaubte und unerlaubte Status-Übergänge
 - [ ] Test für die Zugriffsbeschränkung
 - [ ] Gesamte Testsuite läuft grün
 
-**Dokumentation und Abgabe**
+### Dokumentation und Abgabe
 
 - [ ] README vollständig, alle Platzhalter aufgelöst
 - [ ] Nachvollziehbare Git-Historie mit thematisch getrennten Commits
@@ -356,7 +380,7 @@ make lint
 
 ---
 
-## 6. Bewertungsmatrix
+# 6. Bewertungsmatrix
 
 Gewichtung gemäß Aufgabenstellung, zur Selbsteinschätzung.
 

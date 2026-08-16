@@ -1,0 +1,19 @@
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+extend-exclude = [".odoo-src"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "RUF"]
+# Odoo models are declared through mutable class attributes such as
+# _inherit = [...] or a transition map, which RUF012 wants annotated as
+# ClassVar. That annotation is unusual in Odoo code and adds no safety here.
+ignore = ["RUF012"]
+
+[tool.ruff.lint.per-file-ignores]
+# Odoo discovers models and tests through these import chains, so the imports
+# only look unused to a linter. They are also kept one per line, the way Odoo's
+# own addons write them, which isort would collapse into a single statement.
+"**/__init__.py" = ["F401", "I001"]
+# The manifest is a bare dict literal read with ast.literal_eval.
+"**/__manifest__.py" = ["B018"]
