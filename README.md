@@ -121,12 +121,12 @@ Entwürfe und Stornierungen blockieren ihn nicht.
 
 | # | Regel | Umsetzung | Test |
 | --- | --- | --- | --- |
-| 1 | Keine Doppelbelegung eines Raums für überschneidende Zeiträume | `_check_no_overlap` | `test_overlapping_reservation_is_rejected`, `test_back_to_back_reservations_are_allowed`, `test_cancelling_frees_the_room`, `test_draft_does_not_block_the_room`, `test_another_room_is_unaffected` |
-| 2 | Teilnehmerzahl darf die Raumkapazität nicht überschreiten | `_check_capacity`, zusätzlich `_onchange_attendee_count` als Hinweis im Formular | `test_attendees_above_capacity_are_rejected`, `test_attendees_matching_capacity_are_accepted`, `test_capacity_warning_is_offered_while_editing` |
-| 3 | Der Raum muss die gewünschte Ausstattung bieten | `_check_required_equipment` | `test_equipment_missing_in_the_room_is_rejected`, `test_equipment_available_in_the_room_is_accepted` |
-| 4 | Ende muss nach dem Beginn liegen | SQL-Constraint `_stop_after_start` | `test_stop_before_start_is_rejected_by_the_database` |
-| 5 | Keine Buchung in der Vergangenheit | `_check_start_not_in_past`, ausgelöst nur beim Schreiben von `start` | `test_start_in_the_past_is_rejected`, `test_a_reservation_stays_editable_once_it_has_started` |
-| 6 | Freigabe ausschließlich durch die Manager-Gruppe | `action_approve` | `test_only_managers_may_approve`, `test_approving_records_who_and_when` |
+| 1 | Keine Doppelbelegung eines Raums für überschneidende Zeiträume | `_check_no_overlap` | `test_constraints.py`, 5 Tests |
+| 2 | Teilnehmerzahl darf die Raumkapazität nicht überschreiten | `_check_capacity`, zusätzlich `_onchange_attendee_count` als Hinweis im Formular | `test_constraints.py`, 3 Tests |
+| 3 | Der Raum muss die gewünschte Ausstattung bieten | `_check_required_equipment` | `test_constraints.py`, 2 Tests |
+| 4 | Ende muss nach dem Beginn liegen | SQL-Constraint `_stop_after_start` | `test_constraints.py`, 1 Test |
+| 5 | Keine Buchung in der Vergangenheit | `_check_start_not_in_past`, ausgelöst nur beim Schreiben von `start` | `test_constraints.py`, 2 Tests |
+| 6 | Freigabe ausschließlich durch die Manager-Gruppe | `action_approve` | `test_workflow.py`, 2 Tests |
 
 Die Zustandsübergänge selbst deckt `test_every_transition_follows_the_map` ab:
 Der Test iteriert über `_TRANSITIONS` und prüft alle 25 Kombinationen aus
@@ -466,13 +466,3 @@ allerdings nicht: Jede Aussage über Odoo-Verhalten wurde gegen den Quellcode in
 deklariert. Ungeprüft hätte jede dieser Abweichungen zu einem Ladefehler
 geführt. Jeder Schritt wurde zudem vor dem Commit gegen eine laufende Instanz
 verifiziert.
-
-## Bekannte Einschränkungen
-
-Zusätzlich zu den [Non-Goals](#abgrenzung-non-goals):
-
-- Die Overlap-Prüfung ist gegen zwei exakt gleichzeitig schreibende
-  Transaktionen theoretisch umgehbar. Der Lösungsweg ist dokumentiert.
-- Es gibt keine Demodaten. Räume und Ausstattung müssen nach der Installation
-  angelegt werden.
-- Ein QWeb-Bericht für Belegungspläne ist nicht Teil des Moduls.
