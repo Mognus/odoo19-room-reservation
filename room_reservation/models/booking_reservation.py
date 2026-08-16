@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from odoo import api, fields, models
 from odoo.exceptions import UserError, ValidationError
 
@@ -174,6 +176,11 @@ class BookingReservation(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
+        for vals in vals_list:
+            if vals.get("name", "/") == "/":
+                vals["name"] = self.env["ir.sequence"].next_by_code(
+                    "booking.reservation"
+                ) or "/"
         reservations = super().create(vals_list)
         reservations._check_start_not_in_past()
         return reservations
@@ -208,6 +215,54 @@ class BookingReservation(models.Model):
 
     def action_submit(self):
         self._transition_to("to_approve")
+        self._schedule_approval_activity()
+
+    def _schedule_approval_activity(self):
+        """Put a to-do in the inbox of every booking manager.
+
+        Uses Odoo's activity system rather than a custom notification, so the
+        request shows up in the same place as every other pending task.
+        """
+        managers = self.env.ref("room_reservation.group_booking_manager").user_ids
+        for reservation in self:
+            for manager in managers:
+                reservation.activity_schedule(
+                    "mail.mail_activity_data_todo",
+                    user_id=manager.id,
+                    summary=self.env._("Approve room reservation"),
+                    note=self.env._(
+                        "%(room)s, %(start)s",
+                        room=reservation.room_id.display_name,
+                        start=reservation.start,
+                    ),
+                )
+
+    @api.model
+    def _cron_expire_pending(self):
+        """Cancel requests that are still unapproved shortly before they start.
+
+        The threshold is read from a configuration parameter so it can be tuned
+        per database, and so tests can shift the rule instead of the clock.
+        """
+        hours = int(
+            self.env["ir.config_parameter"]
+            .sudo()
+            .get_param("room_reservation.pending_expiry_hours", default=24)
+        )
+        deadline = fields.Datetime.now() + timedelta(hours=hours)
+        stale = self.search(
+            [("state", "=", "to_approve"), ("start", "<=", deadline)]
+        )
+        if not stale:
+            return
+        # Goes through the same state machine as the button in the form.
+        stale._transition_to("cancelled")
+        for reservation in stale:
+            reservation.message_post(
+                body=self.env._("Cancelled automatically: not approved in time.")
+            )
+        # Remove the now pointless approval task from the managers' inboxes.
+        stale.activity_unlink(["mail.mail_activity_data_todo"])
 
     def action_approve(self):
         # Record rules let managers write any reservation, but approving is a

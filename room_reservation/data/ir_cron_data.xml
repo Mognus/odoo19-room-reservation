@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="cron_expire_pending_reservations" model="ir.cron">
+        <field name="name">Room Reservation: expire pending requests</field>
+        <field name="model_id" ref="model_booking_reservation"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_expire_pending()</field>
+        <field name="user_id" ref="base.user_root"/>
+        <field name="interval_number">1</field>
+        <field name="interval_type">hours</field>
+    </record>
+
+    <record id="pending_expiry_hours" model="ir.config_parameter">
+        <field name="key">room_reservation.pending_expiry_hours</field>
+        <field name="value">24</field>
+    </record>
+
+</odoo>
