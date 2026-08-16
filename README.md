@@ -118,7 +118,7 @@ Entwürfe und Stornierungen blockieren ihn nicht.
 | 2 | Teilnehmerzahl darf die Raumkapazität nicht überschreiten | `_check_capacity`, zusätzlich `_onchange_attendee_count` als Hinweis im Formular |
 | 3 | Der Raum muss die gewünschte Ausstattung bieten | `_check_required_equipment` |
 | 4 | Ende muss nach dem Beginn liegen | SQL-Constraint `_stop_after_start` |
-| 5 | Keine Buchung in der Vergangenheit | `_check_start_not_in_past`, aufgerufen aus `create` und aus `write`, sofern der Zeitraum verschoben wird |
+| 5 | Keine Buchung in der Vergangenheit | `_check_start_not_in_past`, ausgelöst nur beim Schreiben von `start` |
 | 6 | Freigabe ausschließlich durch die Manager-Gruppe | `action_approve` |
 
 Die Überschneidungsprüfung nutzt halboffene Intervalle
@@ -170,7 +170,7 @@ Gruppen mit ODER verknüpft werden.
 | Overlap-Prüfung als `@api.constrains` | Idiomatisch und direkt testbar; verbleibende Race Condition siehe [Abgrenzung](#abgrenzung-non-goals) | PostgreSQL-`EXCLUDE` mit `tstzrange` — wasserdicht, erzwingt aber die Extension `btree_gist` |
 | Status-Wechsel über deklarative Übergangs-Map plus zentrale Transition-Methode | Neue Zustände ändern eine Datenstruktur statt jeder Action-Methode; ein parametrisierter Test deckt alle Kombinationen ab | Prüfung in jeder `action_*`-Methode — Open/Closed-Verletzung |
 | Kapazitätsprüfung als `@api.onchange` **und** `@api.constrains` | `onchange` ist reine UI und schützt nicht bei Import oder API-Zugriff; erst `constrains` sichert die Integrität | Nur `onchange` |
-| Vergangenheits-Prüfung nur bei Neuanlage | Eine laufende oder vergangene Buchung muss stornier- und korrigierbar bleiben | Prüfung bei jedem Schreibvorgang — blockiert Statuswechsel an bestehenden Sätzen |
+| Vergangenheits-Prüfung als `@api.constrains("start")` | Odoo führt eine Bedingung nur für die tatsächlich geschriebenen Felder aus, sodass ein Statuswechsel sie nicht auslöst und eine laufende Buchung stornierbar bleibt | Überschriebene `create`- und `write`-Methoden — gleiches Verhalten, doppelter Code |
 | Lesezugriff für alle, Schreibzugriff nur auf eigene Reservierungen | Belegung muss einsehbar sein, sonst ist der Kalender wertlos; getrennte Record Rules für `perm_read` und `perm_write`/`perm_unlink` | Nur eigene sichtbar — Raumbelegung nicht nachvollziehbar |
 | Organisator als `res.users`, `depends` nur auf `base` und `mail` | Modul läuft auf jeder CE-Instanz ohne HR und bleibt isoliert testbar | `hr.employee` — fachlich näher (Abteilung, Vorgesetzter als Genehmiger), kostet aber die `hr`-Abhängigkeit; `res.partner` — erlaubt externe Bucher, macht aber „meine Buchungen" in Record Rules unsauber |
 | Ausstattung als eigenes Model mit m2m-Relation | Filterbar über Domains und ohne Code-Änderung erweiterbar | `Selection`-Feld — nicht durch Anwender pflegbar |

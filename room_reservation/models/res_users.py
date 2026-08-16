@@ -4,6 +4,10 @@ from odoo import api, fields, models
 class ResUsers(models.Model):
     """Extend the standard user with the reservations they organize."""
 
+    # Both are set on purpose: without an explicit _name, Odoo derives it from
+    # the class name, which would silently create a new model if the class were
+    # ever renamed.
+    _name = "res.users"
     _inherit = ["res.users"]
 
     reservation_ids = fields.One2many(

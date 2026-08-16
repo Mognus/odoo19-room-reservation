@@ -159,6 +159,22 @@ class BookingReservation(models.Model):
                     )
                 )
 
+    @api.constrains("start")
+    def _check_start_not_in_past(self):
+        """Rejects a period that begins in the past.
+
+        Odoo runs a constraint only for the fields present in the create or
+        write values, so this never fires when merely the state changes. A
+        reservation that has already started therefore stays cancellable.
+        """
+        now = fields.Datetime.now()
+        for reservation in self:
+            # Odoo returns False for unset fields, which cannot be compared.
+            if reservation.start and reservation.start < now:
+                raise ValidationError(
+                    self.env._("A reservation cannot start in the past.")
+                )
+
     @api.onchange("attendee_count", "room_id")
     def _onchange_attendee_count(self):
         """Warn while editing. The binding rule is _check_capacity."""
@@ -181,18 +197,7 @@ class BookingReservation(models.Model):
                 vals["name"] = self.env["ir.sequence"].next_by_code(
                     "booking.reservation"
                 ) or "/"
-        reservations = super().create(vals_list)
-        reservations._check_start_not_in_past()
-        return reservations
-
-    def write(self, vals):
-        res = super().write(vals)
-        # Only validated when the period is actually moved: a constraint would
-        # otherwise turn invalid on its own as time passes, and freeze the
-        # record against cancelling or completing it.
-        if "start" in vals:
-            self._check_start_not_in_past()
-        return res
+        return super().create(vals_list)
 
     def _transition_to(self, target, values=None):
         """Single entry point for state changes, validated against _TRANSITIONS.
@@ -288,12 +293,3 @@ class BookingReservation(models.Model):
     def action_reset_to_draft(self):
         # Clear the approval trail so a resubmitted request is approved again.
         self._transition_to("draft", {"approver_id": False, "approval_date": False})
-
-    def _check_start_not_in_past(self):
-        now = fields.Datetime.now()
-        for reservation in self:
-            # Odoo returns False for unset fields, which cannot be compared.
-            if reservation.start and reservation.start < now:
-                raise ValidationError(
-                    self.env._("A reservation cannot start in the past.")
-                )
