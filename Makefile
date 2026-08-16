@@ -20,8 +20,10 @@ upgrade:
 	docker compose run --rm odoo odoo -d $(DB) -u $(MODULE) --stop-after-init
 
 test:
+	# --test-tags already enables the test runner; --stop-after-init is kept
+	# because it makes the intent obvious when reading this file.
 	docker compose run --rm odoo odoo -d $(DB) -u $(MODULE) \
-		--test-enable --test-tags /$(MODULE) --stop-after-init
+		--test-tags /$(MODULE) --stop-after-init
 
 fresh:
 	docker compose down -v

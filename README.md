@@ -265,11 +265,17 @@ make fresh     # löscht alle Volumes und installiert neu
 make test
 ```
 
-Entspricht:
+Entspricht, mit dem im Makefile gesetzten Standardnamen der Datenbank:
 
 ```bash
 docker compose run --rm odoo odoo -d rooms -u room_reservation \
-    --test-enable --test-tags /room_reservation --stop-after-init
+    --test-tags /room_reservation --stop-after-init
+```
+
+Ein anderer Name lässt sich ohne Änderung am Makefile übergeben:
+
+```bash
+make test DB=scratch
 ```
 
 ### Entwicklungsumgebung
