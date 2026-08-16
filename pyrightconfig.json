@@ -2,6 +2,10 @@
   "extraPaths": [".odoo-src"],
   "exclude": [".odoo-src", "**/__pycache__"],
 
+  // Odoo manifests are data files: a bare dict literal parsed with
+  // ast.literal_eval, which reads as a useless expression to a checker.
+  "ignore": ["**/__manifest__.py"],
+
   // Odoo resolves relations from strings at runtime ("booking.room"), so a
   // static checker only sees BaseModel and cannot know the concrete fields.
   // Most Field.__init__ parameters are unannotated for the same dynamic
