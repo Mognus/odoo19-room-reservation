@@ -52,3 +52,14 @@ class BookingRoom(models.Model):
         )
         for room in self:
             room.reservation_count = counts.get(room, 0)
+
+    def action_view_reservations(self):
+        self.ensure_one()
+        return {
+            "type": "ir.actions.act_window",
+            "name": self.env._("Reservations"),
+            "res_model": "booking.reservation",
+            "view_mode": "list,calendar,form",
+            "domain": [("room_id", "=", self.id)],
+            "context": {"default_room_id": self.id},
+        }

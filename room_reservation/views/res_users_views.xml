@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!--
+        Extends the standard user form instead of replacing it: Odoo loads the
+        original view and applies this patch on top, so uninstalling the module
+        leaves base.view_users_form untouched.
+    -->
+    <record id="res_users_view_form_reservations" model="ir.ui.view">
+        <field name="name">res.users.form.reservations</field>
+        <field name="model">res.users</field>
+        <field name="inherit_id" ref="base.view_users_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_reservations" type="object"
+                        class="oe_stat_button" icon="fa-calendar"
+                        groups="room_reservation.group_booking_user">
+                    <field name="reservation_count" widget="statinfo" string="Reservations"/>
+                </button>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

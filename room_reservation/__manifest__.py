@@ -14,6 +14,7 @@
         "views/booking_room_equipment_views.xml",
         "views/booking_room_views.xml",
         "views/booking_reservation_views.xml",
+        "views/res_users_views.xml",
         # Menus come last: they reference the actions defined above.
         "views/menus.xml",
     ],
