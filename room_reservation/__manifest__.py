@@ -11,6 +11,10 @@
         # Groups must load before the access rights that reference them.
         "security/security.xml",
         "security/ir.model.access.csv",
+        "views/booking_room_equipment_views.xml",
+        "views/booking_room_views.xml",
+        # Menus come last: they reference the actions defined above.
+        "views/menus.xml",
     ],
     "application": True,
     "installable": True,

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="booking_room_equipment_view_list" model="ir.ui.view">
+        <field name="name">booking.room.equipment.list</field>
+        <field name="model">booking.room.equipment</field>
+        <field name="arch" type="xml">
+            <!-- Editable inline: equipment is a short lookup table that is
+                 faster to maintain without opening a form for each entry. -->
+            <list string="Equipment" editable="bottom">
+                <field name="name"/>
+                <field name="room_ids" widget="many2many_tags"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="booking_room_equipment_action" model="ir.actions.act_window">
+        <field name="name">Equipment</field>
+        <field name="res_model">booking.room.equipment</field>
+        <field name="view_mode">list</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Add the first piece of equipment</p>
+            <p>Equipment describes what a room provides, for example a projector or a whiteboard.</p>
+        </field>
+    </record>
+
+</odoo>

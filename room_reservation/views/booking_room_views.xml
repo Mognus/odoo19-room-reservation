@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record id="booking_room_view_list" model="ir.ui.view">
+        <field name="name">booking.room.list</field>
+        <field name="model">booking.room</field>
+        <field name="arch" type="xml">
+            <list string="Rooms">
+                <field name="name"/>
+                <field name="location"/>
+                <field name="capacity"/>
+                <field name="equipment_ids" widget="many2many_tags"/>
+                <field name="reservation_count" string="Reservations"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="booking_room_view_form" model="ir.ui.view">
+        <field name="name">booking.room.form</field>
+        <field name="model">booking.room</field>
+        <field name="arch" type="xml">
+            <form string="Room">
+                <sheet>
+                    <widget name="web_ribbon" title="Archived" bg_color="text-bg-danger"
+                            invisible="active"/>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1>
+                            <field name="name" placeholder="e.g. Room North"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="location" placeholder="e.g. Building A, 2nd floor"/>
+                            <field name="capacity"/>
+                        </group>
+                        <group>
+                            <field name="equipment_ids" widget="many2many_tags"
+                                   options="{'no_create_edit': True}"/>
+                            <field name="color" widget="color_picker"/>
+                            <field name="active" invisible="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Description" name="description">
+                            <field name="description" placeholder="Notes about this room"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="booking_room_view_search" model="ir.ui.view">
+        <field name="name">booking.room.search</field>
+        <field name="model">booking.room</field>
+        <field name="arch" type="xml">
+            <search string="Rooms">
+                <field name="name"/>
+                <field name="location"/>
+                <field name="equipment_ids"/>
+                <filter name="filter_archived" string="Archived" domain="[('active', '=', False)]"/>
+                <group>
+                    <filter name="group_by_location" string="Location"
+                            context="{'group_by': 'location'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="booking_room_action" model="ir.actions.act_window">
+        <field name="name">Rooms</field>
+        <field name="res_model">booking.room</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Create the first room</p>
+            <p>Rooms define what can be booked, how many people fit in and which equipment is available.</p>
+        </field>
+    </record>
+
+</odoo>

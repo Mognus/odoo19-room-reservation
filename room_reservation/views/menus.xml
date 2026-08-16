@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <menuitem id="menu_room_reservation_root"
+              name="Room Reservations"
+              sequence="80"/>
+
+    <!-- Maintaining rooms and equipment is a manager task, so the whole
+         configuration branch is hidden from regular users. -->
+    <menuitem id="menu_room_reservation_configuration"
+              name="Configuration"
+              parent="menu_room_reservation_root"
+              groups="group_booking_manager"
+              sequence="90"/>
+
+    <menuitem id="menu_booking_room"
+              name="Rooms"
+              parent="menu_room_reservation_configuration"
+              action="booking_room_action"
+              sequence="10"/>
+
+    <menuitem id="menu_booking_room_equipment"
+              name="Equipment"
+              parent="menu_room_reservation_configuration"
+              action="booking_room_equipment_action"
+              sequence="20"/>
+
+</odoo>
