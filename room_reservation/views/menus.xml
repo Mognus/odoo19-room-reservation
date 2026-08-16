@@ -5,6 +5,12 @@
               name="Room Reservations"
               sequence="80"/>
 
+    <menuitem id="menu_booking_reservation"
+              name="Reservations"
+              parent="menu_room_reservation_root"
+              action="booking_reservation_action"
+              sequence="10"/>
+
     <!-- Maintaining rooms and equipment is a manager task, so the whole
          configuration branch is hidden from regular users. -->
     <menuitem id="menu_room_reservation_configuration"
