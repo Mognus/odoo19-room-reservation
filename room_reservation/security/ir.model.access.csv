@@ -1,0 +1,7 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_booking_room_equipment_user,booking.room.equipment user,model_booking_room_equipment,group_booking_user,1,0,0,0
+access_booking_room_equipment_manager,booking.room.equipment manager,model_booking_room_equipment,group_booking_manager,1,1,1,1
+access_booking_room_user,booking.room user,model_booking_room,group_booking_user,1,0,0,0
+access_booking_room_manager,booking.room manager,model_booking_room,group_booking_manager,1,1,1,1
+access_booking_reservation_user,booking.reservation user,model_booking_reservation,group_booking_user,1,1,1,1
+access_booking_reservation_manager,booking.reservation manager,model_booking_reservation,group_booking_manager,1,1,1,1

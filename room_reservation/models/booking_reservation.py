@@ -210,6 +210,12 @@ class BookingReservation(models.Model):
         self._transition_to("to_approve")
 
     def action_approve(self):
+        # Record rules let managers write any reservation, but approving is a
+        # narrower privilege than writing and is checked explicitly.
+        if not self.env.user.has_group("room_reservation.group_booking_manager"):
+            raise UserError(
+                self.env._("Only a booking manager can approve reservations.")
+            )
         self._transition_to(
             "confirmed",
             {

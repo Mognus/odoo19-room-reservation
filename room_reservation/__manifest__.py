@@ -7,7 +7,11 @@
     "author": "Mognus",
     "website": "https://github.com/Mognus/odoo19-room-reservation",
     "depends": ["base", "mail"],
-    "data": [],
+    "data": [
+        # Groups must load before the access rights that reference them.
+        "security/security.xml",
+        "security/ir.model.access.csv",
+    ],
     "application": True,
     "installable": True,
 }
