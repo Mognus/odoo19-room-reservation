@@ -3,9 +3,6 @@
 Odoo 19 CE Modul zur Verwaltung von Räumen und Buchungsanträgen mit
 mehrstufiger Freigabe, Kapazitäts- und Ausstattungsprüfung.
 
-> Status: **in Entwicklung** — dieses README ist das Gerüst gemäß Aufgabenstellung
-> und wird während der Umsetzung befüllt.
-
 ---
 
 # 1. Funktionsbeschreibung
@@ -20,13 +17,25 @@ Ressourcenkonzept. Dieses Modul schließt genau diese Lücke.
 
 ## Fachlicher Umfang
 
-<!-- TODO: nach Implementierung final beschreiben -->
-
-- **Raumverwaltung** — Räume mit Kapazität, Standort und Ausstattung
-- **Buchungsanträge** — Reservierung eines Raums für einen Zeitraum
-- **Genehmigungs-Workflow** — Anträge werden durch Manager freigegeben
-- **Konfliktfreiheit** — Doppelbelegungen werden systemseitig verhindert
-- **Automatik** — überfällige, noch nicht genehmigte Anträge verfallen
+- **Raumverwaltung** — Räume mit Kapazität, Standort, Ausstattung und Farbe für
+  die Kalenderansicht; Archivierung statt Löschen, damit vergangene Buchungen
+  nachvollziehbar bleiben
+- **Ausstattungskatalog** — frei pflegbare Merkmale wie Beamer oder Whiteboard,
+  die Räumen zugeordnet und in Buchungen angefordert werden können
+- **Buchungsanträge** — Reservierung eines Raums für einen Zeitraum, mit
+  Organisator, Zweck, Teilnehmerzahl und gewünschter Ausstattung; die Referenz
+  vergibt eine Sequenz im Format `BOOK/2026/00001`
+- **Genehmigungs-Workflow** — fünf Zustände von `draft` bis `done`, Freigabe
+  ausschließlich durch die Manager-Gruppe, mit Protokoll wer wann freigegeben hat
+- **Konfliktfreiheit** — Doppelbelegungen werden systemseitig verhindert,
+  ebenso Buchungen über der Raumkapazität oder mit nicht vorhandener Ausstattung
+- **Automatik** — noch nicht genehmigte Anträge verfallen kurz vor Beginn
+  selbsttätig; Manager erhalten beim Einreichen eine Aufgabe im Odoo-Postfach
+- **Integration in den Standard** — Chatter, Follower und Änderungsverfolgung
+  über `mail.thread`; das Benutzerformular wird um einen Smart-Button zu den
+  eigenen Reservierungen erweitert
+- **Ansichten** — Liste, Formular, Suche mit Filtern und Gruppierung sowie eine
+  Kalenderansicht mit Einfärbung nach Raum
 
 ## Datenmodell
 
@@ -110,16 +119,18 @@ Entwürfe und Stornierungen blockieren ihn nicht.
 
 ## Geschäftsregeln
 
-<!-- TODO: Verweise auf die Tests ergänzen, sobald diese stehen -->
+| # | Regel | Umsetzung | Test |
+| --- | --- | --- | --- |
+| 1 | Keine Doppelbelegung eines Raums für überschneidende Zeiträume | `_check_no_overlap` | `test_overlapping_reservation_is_rejected`, `test_back_to_back_reservations_are_allowed`, `test_cancelling_frees_the_room`, `test_draft_does_not_block_the_room`, `test_another_room_is_unaffected` |
+| 2 | Teilnehmerzahl darf die Raumkapazität nicht überschreiten | `_check_capacity`, zusätzlich `_onchange_attendee_count` als Hinweis im Formular | `test_attendees_above_capacity_are_rejected`, `test_attendees_matching_capacity_are_accepted`, `test_capacity_warning_is_offered_while_editing` |
+| 3 | Der Raum muss die gewünschte Ausstattung bieten | `_check_required_equipment` | `test_equipment_missing_in_the_room_is_rejected`, `test_equipment_available_in_the_room_is_accepted` |
+| 4 | Ende muss nach dem Beginn liegen | SQL-Constraint `_stop_after_start` | `test_stop_before_start_is_rejected_by_the_database` |
+| 5 | Keine Buchung in der Vergangenheit | `_check_start_not_in_past`, ausgelöst nur beim Schreiben von `start` | `test_start_in_the_past_is_rejected`, `test_a_reservation_stays_editable_once_it_has_started` |
+| 6 | Freigabe ausschließlich durch die Manager-Gruppe | `action_approve` | `test_only_managers_may_approve`, `test_approving_records_who_and_when` |
 
-| # | Regel | Umsetzung |
-| --- | --- | --- |
-| 1 | Keine Doppelbelegung eines Raums für überschneidende Zeiträume | `_check_no_overlap` |
-| 2 | Teilnehmerzahl darf die Raumkapazität nicht überschreiten | `_check_capacity`, zusätzlich `_onchange_attendee_count` als Hinweis im Formular |
-| 3 | Der Raum muss die gewünschte Ausstattung bieten | `_check_required_equipment` |
-| 4 | Ende muss nach dem Beginn liegen | SQL-Constraint `_stop_after_start` |
-| 5 | Keine Buchung in der Vergangenheit | `_check_start_not_in_past`, ausgelöst nur beim Schreiben von `start` |
-| 6 | Freigabe ausschließlich durch die Manager-Gruppe | `action_approve` |
+Die Zustandsübergänge selbst deckt `test_every_transition_follows_the_map` ab:
+Der Test iteriert über `_TRANSITIONS` und prüft alle 25 Kombinationen aus
+Ausgangs- und Zielzustand, erlaubte wie unzulässige.
 
 Die Überschneidungsprüfung nutzt halboffene Intervalle
 (`start < other.stop AND stop > other.start`), sodass eine Buchung genau dann
@@ -173,7 +184,30 @@ Gruppen mit ODER verknüpft werden.
 
 ## Views und Navigation
 
-<!-- TODO: ergänzen -->
+```
+Room Reservations
+├── Reservations                       Liste, Kalender, Formular
+└── Configuration                      nur für die Manager-Gruppe sichtbar
+     ├── Rooms
+     └── Equipment
+```
+
+| Model | Ansichten | Besonderheiten |
+| --- | --- | --- |
+| `booking.reservation` | list, form, search, calendar | Statusleiste mit Aktions-Buttons, Chatter, Einfärbung nach Status |
+| `booking.room` | list, form, search | Smart-Button zu den Buchungen des Raums, Archivierungs-Fahne |
+| `booking.room.equipment` | list | direkt in der Liste bearbeitbar |
+| `res.users` | Erweiterung von `base.view_users_form` | Smart-Button zu den eigenen Buchungen, per XPath eingefügt |
+
+Die Kalenderansicht färbt Buchungen nach Raum ein und blendet über die
+Seitenleiste einzelne Räume aus. Die Aktion öffnet standardmäßig den Filter
+„Upcoming", sodass man in den kommenden Terminen landet statt in der
+vollständigen Historie.
+
+Buttons im Formular folgen dem Zustand: `Submit` erscheint nur im Entwurf,
+`Approve` nur bei eingereichten Anträgen und ausschließlich für Manager.
+Sichtbarkeit über `groups` und `invisible` ist dabei Bedienführung, nicht
+Sicherheit — die verbindliche Prüfung steht in `action_approve`.
 
 ---
 
@@ -197,21 +231,22 @@ Gruppen mit ODER verknüpft werden.
 
 ## Vorgehen
 
-Umsetzung in aufeinander aufbauenden Schritten, jeder Schritt ein eigener Commit.
+Umsetzung in aufeinander aufbauenden Schritten. Jeder Schritt wurde einzeln
+committet und vor dem Commit gegen eine laufende Instanz verifiziert, sodass
+die Historie an jedem Punkt einen lauffähigen Stand beschreibt.
 
-<!-- TODO: Commit-Referenzen je Schritt ergänzen -->
-
-1. **Gerüst** — Verzeichnisstruktur, `__manifest__.py` mit `depends` auf `base` und `mail`
-2. **Models** — `booking.room.equipment`, `booking.room`, `booking.reservation`,
-   Erweiterung von `res.users` um eigene Reservierungen
-3. **Geschäftslogik** — Constraints, Status-Übergänge, computed fields
-4. **Security** — Gruppen, Zugriffsrechte, Record Rules
-5. **Views** — list, form, search, calendar sowie Menüs und Aktionen
-6. **Erweiterung des Standards** — `res.users` um eigene Reservierungen
-   ergänzen und das bestehende Benutzerformular per XPath um einen
-   Smart-Button erweitern
-7. **Automatisierung** — Sequenz, Scheduled Action, Aktivität für Genehmiger
-8. **Tests** — Geschäftsregeln, Status-Übergänge, Zugriffsbeschränkung
+| Schritt | Inhalt | Commits |
+| --- | --- | --- |
+| 1 | **Entwicklungsumgebung** — Docker Compose mit `odoo:19.0` und PostgreSQL, Makefile, Editor-Unterstützung | `cc7fd20`, `5ff7fea`, `762b124` |
+| 2 | **Gerüst** — Verzeichnisstruktur und `__manifest__.py` mit `depends` auf `base` und `mail` | `69b46cd` |
+| 3 | **Models** — `booking.room.equipment`, `booking.room`, `booking.reservation` | `382a7ad`, `d6903ec`, `155c2fc` |
+| 4 | **Geschäftslogik** — Constraints, computed fields, Zustandsautomat | `da672f9`, `4a54ed8`, `224ec17` |
+| 5 | **Security** — Gruppen, Record Rules, Zugriffsrechte | `a8249c9`, `eb90d01` |
+| 6 | **Views** — list, form, search, calendar sowie Menüs und Aktionen | `8c28cde`, `1ec295c` |
+| 7 | **Erweiterung des Standards** — `res.users` und das Benutzerformular per XPath | `c094537` |
+| 8 | **Automatisierung** — Sequenz, Scheduled Action, Aktivität für Genehmiger | `da85c5f` |
+| 9 | **Tests** — Geschäftsregeln, Zustandsautomat, Zugriffsrechte, Automatik | `8fd258b`, `ea65eab`, `96e21fe` |
+| 10 | **Werkzeuge und Dokumentation** — Linter-Konfiguration, README | `9abe2c1`, `16109c0`, `2cb55fe`, `deefb0e` |
 9. **Dokumentation** — README vervollständigen
 
 ## Abgrenzung (Non-Goals)
@@ -388,13 +423,23 @@ dieser Zeit floss in das Nachlesen im Odoo-Quellcode, weil verfügbare Anleitung
 
 # 6. Bewertungsmatrix
 
-Gewichtung gemäß Aufgabenstellung, zur Selbsteinschätzung.
+Gewichtung gemäß Aufgabenstellung, mit den jeweils prüfbaren Nachweisen.
 
-<!-- TODO: Selbsteinschätzung nach Abschluss eintragen -->
+| Kriterium | Gewicht | Nachweis |
+| --- | --- | --- |
+| Codequalität und Tests | 50 % | 33 Tests in vier Dateien, `make test` läuft grün; Fixtures zentral in `tests/common.py`; ein parametrisierter Test deckt alle 25 Zustandsübergänge ab; Zugriffsrechte werden aus Benutzersicht mit `with_user` geprüft; `ruff check` meldet keine Befunde |
+| Odoo-Kenntnisse | 20 % | Model-Vererbung und View-Vererbung per XPath, Record Rules getrennt nach Operation, `mail.thread` und `mail.activity.mixin`, `ir.sequence`, `ir.cron`, `ir.config_parameter`, Domain-basierte Overlap-Prüfung statt Auswertung in Python, durchgängig Odoo-19-Syntax (`<list>`, `<chatter/>`, `models.Constraint`, `res.groups.privilege`) |
+| Dokumentation | 20 % | Funktionsbeschreibung, Datenmodell mit Feldlisten, Architekturentscheidungen samt verworfener Alternativen, Installationsanleitung für zwei Wege, Abgrenzung mit benannter Restschwäche |
+| Git-Historie | 10 % | 32 Commits nach Conventional Commits, thematisch getrennt, jeder Schritt vor dem Commit gegen eine laufende Instanz verifiziert |
 
-| Kriterium | Gewicht | Nachweis | Selbsteinschätzung |
-| --- | --- | --- | --- |
-| Codequalität und Tests | 50 % | | |
-| Odoo-Kenntnisse | 20 % | | |
-| Dokumentation | 20 % | | |
-| Git-Historie | 10 % | | |
+<!-- TODO: Selbsteinschätzung ergänzen -->
+
+## Bekannte Einschränkungen
+
+Zusätzlich zu den [Non-Goals](#abgrenzung-non-goals):
+
+- Die Overlap-Prüfung ist gegen zwei exakt gleichzeitig schreibende
+  Transaktionen theoretisch umgehbar. Der Lösungsweg ist dokumentiert.
+- Es gibt keine Demodaten. Räume und Ausstattung müssen nach der Installation
+  angelegt werden.
+- Ein QWeb-Bericht für Belegungspläne ist nicht Teil des Moduls.
