@@ -8,5 +8,9 @@
   // reasons. Both checks are therefore structurally unusable here, while
   // completion, go-to-definition and unresolved imports keep working.
   "reportAttributeAccessIssue": "none",
-  "reportArgumentType": "none"
+  "reportArgumentType": "none",
+
+  // Odoo overrides assertRaises without a return annotation, so one branch
+  // infers as None and the checker rejects it as a context manager.
+  "reportOptionalContextManager": "none"
 }
