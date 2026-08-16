@@ -432,7 +432,40 @@ Gewichtung gemäß Aufgabenstellung, mit den jeweils prüfbaren Nachweisen.
 | Dokumentation | 20 % | Funktionsbeschreibung, Datenmodell mit Feldlisten, Architekturentscheidungen samt verworfener Alternativen, Installationsanleitung für zwei Wege, Abgrenzung mit benannter Restschwäche |
 | Git-Historie | 10 % | 32 Commits nach Conventional Commits, thematisch getrennt, jeder Schritt vor dem Commit gegen eine laufende Instanz verifiziert |
 
-<!-- TODO: Selbsteinschätzung ergänzen -->
+## Selbsteinschätzung
+
+**Codequalität und Tests** — Alle dokumentierten Geschäftsregeln sind durch
+Tests abgedeckt, die Zugriffsrechte werden aus Benutzersicht geprüft, und der
+Zustandsautomat ist vollständig statt stichprobenartig getestet. Was fehlt:
+Tests der Oberfläche selbst, etwa über `HttpCase`, und Aussagen zum Verhalten
+bei größeren Datenmengen.
+
+**Odoo-Kenntnisse** — Die Mechanik des Frameworks ist im Rahmen dieser Aufgabe
+durchdrungen und wurde bewusst nach Odoo-19-Konventionen umgesetzt statt nach
+älteren Beispielen. Diese Kenntnisse sind allerdings genau hier entstanden;
+Erfahrung mit Migrationen zwischen Versionen, Multi-Company-Installationen oder
+dem Betrieb größerer Bestände liegt nicht vor.
+
+**Dokumentation** — Aufbau, Entscheidungen und Grenzen sind vollständig
+beschrieben, inklusive der verworfenen Alternativen und der bekannten
+Restschwächen. Es fehlen Screenshots und eine Anleitung aus Anwendersicht; das
+Dokument richtet sich an Entwickler.
+
+**Git-Historie** — Durchgängig Conventional Commits, thematisch getrennt, in
+einer Reihenfolge, in der jeder einzelne Stand lauffähig ist. Es handelt sich
+um einen linearen Solo-Verlauf ohne Branches und Reviews, wie er in einem Team
+nicht entstehen würde.
+
+**Hilfsmittel** — Diese Arbeit ist unter durchgehendem Einsatz eines
+KI-Assistenten entstanden; ohne Odoo-Vorerfahrung wäre dieser Umfang in der
+angegebenen Zeit sonst nicht erreichbar gewesen. Verlassen habe ich mich darauf
+allerdings nicht: Jede Aussage über Odoo-Verhalten wurde gegen den Quellcode in
+`.odoo-src` geprüft, und mehrere Annahmen erwiesen sich dabei als falsch —
+`res.groups` hängt in Odoo 19 an einer `res.groups.privilege`, das Feld heißt
+`group_ids` statt `groups_id`, SQL-Constraints werden als `models.Constraint`
+deklariert. Ungeprüft hätte jede dieser Abweichungen zu einem Ladefehler
+geführt. Jeder Schritt wurde zudem vor dem Commit gegen eine laufende Instanz
+verifiziert.
 
 ## Bekannte Einschränkungen
 
