@@ -328,55 +328,61 @@ Klassenattribute deklariert. Jede Ausnahme ist an Ort und Stelle begründet.
 
 # 4. Zeitaufwand
 
-<!-- TODO: Ist-Werte nach Abschluss eintragen -->
-
 | Arbeitspaket | Geplant | Tatsächlich |
 | --- | --- | --- |
-| Projektgerüst und Manifest | 0,5 h | |
-| Models und Geschäftslogik | 1,5 h | |
-| Views, Menüs, Security | 1,5 h | |
-| Scheduled Action und Aktivitäten | 1,0 h | |
-| Tests | 1,5 h | |
-| Dokumentation und Git-Historie | 1,0 h | |
-| **Summe** | **7,0 h** | |
+| Projektgerüst, Container-Setup und Manifest | 0,5 h | 1,0 h |
+| Models und Geschäftslogik | 1,5 h | 2,0 h |
+| Views, Menüs, Security | 1,5 h | 2,0 h |
+| Scheduled Action und Aktivitäten | 1,0 h | 1,5 h |
+| Tests | 1,5 h | 2,0 h |
+| Dokumentation und Git-Historie | 1,0 h | 1,5 h |
+| **Summe Umsetzung** | **7,0 h** | **10,0 h** |
+| Einarbeitung in Odoo 19 | nicht geplant | 5,0 h |
+| **Gesamt** | | **15,0 h** |
+
+Die Einarbeitung ist bewusst getrennt ausgewiesen. Sie umfasst das Verständnis
+des ORM, der Vererbungsmechanismen, des Sicherheitsmodells und der in Odoo 17
+bis 19 geänderten Konventionen — von `<tree>` zu `<list>`, von `groups_id` zu
+`group_ids`, von `_sql_constraints` zu `models.Constraint` und von
+`ir.module.category` zu `res.groups.privilege` an den Gruppen. Ein Großteil
+dieser Zeit floss in das Nachlesen im Odoo-Quellcode, weil verfügbare Anleitungen
+überwiegend ältere Versionen beschreiben.
 
 ---
 
 # 5. Definition of Done
 
-<!-- TODO: abhaken, sobald erfüllt und verifiziert -->
-
 ### Funktion
 
-- [ ] Modul ist auf einer frischen Odoo 19 CE Instanz ohne Fehler installierbar
-- [ ] Deinstallation und Neuinstallation funktionieren fehlerfrei
-- [ ] Alle Geschäftsregeln sind implementiert und greifen
-- [ ] Der Status-Workflow ist vollständig durchlaufbar
+- [x] Modul ist auf einer frischen Odoo 19 CE Instanz ohne Fehler installierbar
+- [x] Deinstallation und Neuinstallation funktionieren fehlerfrei
+- [x] Alle Geschäftsregeln sind implementiert und greifen
+- [x] Der Status-Workflow ist vollständig durchlaufbar
 
 ### Codequalität
 
-- [ ] PEP8-konform, geprüft mit `ruff`
-- [ ] Odoo-Konventionen für Struktur, Benennung und Manifest eingehalten
-- [ ] Fehlerfälle werfen `UserError` bzw. `ValidationError` mit klarer Meldung
-- [ ] Benutzertexte sind übersetzbar
+- [x] PEP8-konform, geprüft mit `ruff`
+- [x] Odoo-Konventionen für Struktur, Benennung und Manifest eingehalten
+- [x] Fehlerfälle werfen `UserError` bzw. `ValidationError` mit klarer Meldung
+- [x] Benutzertexte sind übersetzbar
 
 ### Security
 
-- [ ] Zugriffsrechte für alle Models definiert
-- [ ] Record Rules greifen, aus Benutzersicht verifiziert
+- [x] Zugriffsrechte für alle Models definiert
+- [x] Record Rules greifen, aus Benutzersicht verifiziert
 
 ### Tests
 
-- [ ] Automatisierte Tests für alle Geschäftsregeln
-- [ ] Tests für erlaubte und unerlaubte Status-Übergänge
-- [ ] Test für die Zugriffsbeschränkung
-- [ ] Gesamte Testsuite läuft grün
+- [x] Automatisierte Tests für alle Geschäftsregeln
+- [x] Tests für erlaubte und unerlaubte Status-Übergänge
+- [x] Test für die Zugriffsbeschränkung
+- [x] Gesamte Testsuite läuft grün
 
 ### Dokumentation und Abgabe
 
 - [ ] README vollständig, alle Platzhalter aufgelöst
-- [ ] Nachvollziehbare Git-Historie mit thematisch getrennten Commits
-- [ ] Repository auf GitHub verfügbar
+- [x] Nachvollziehbare Git-Historie mit thematisch getrennten Commits
+- [x] Repository auf GitHub verfügbar
 
 ---
 
