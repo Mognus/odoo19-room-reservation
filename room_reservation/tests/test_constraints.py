@@ -1,10 +1,9 @@
 from datetime import timedelta
 
-from psycopg2 import IntegrityError
-
 from odoo import fields
 from odoo.exceptions import ValidationError
 from odoo.tools import mute_logger
+from psycopg2 import IntegrityError
 
 from .common import ReservationCase
 

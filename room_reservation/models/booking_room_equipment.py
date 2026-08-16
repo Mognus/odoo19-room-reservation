@@ -11,7 +11,8 @@ class BookingRoomEquipment(models.Model):
     name = fields.Char(required=True, translate=True)
     active = fields.Boolean(
         default=True,
-        help="Archive equipment instead of deleting it to keep historical rooms intact.",
+        help="Archive equipment instead of deleting it, "
+        "so historical rooms stay intact.",
     )
     room_ids = fields.Many2many(
         comodel_name="booking.room",

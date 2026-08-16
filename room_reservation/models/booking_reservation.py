@@ -139,7 +139,8 @@ class BookingReservation(models.Model):
             if reservation.attendee_count > reservation.room_id.capacity:
                 raise ValidationError(
                     self.env._(
-                        "%(room)s holds %(capacity)s people, but %(requested)s are expected.",
+                        "%(room)s holds %(capacity)s people, "
+                        "but %(requested)s are expected.",
                         room=reservation.room_id.display_name,
                         capacity=reservation.room_id.capacity,
                         requested=reservation.attendee_count,
@@ -149,7 +150,8 @@ class BookingReservation(models.Model):
     @api.constrains("required_equipment_ids", "room_id")
     def _check_required_equipment(self):
         for reservation in self:
-            missing = reservation.required_equipment_ids - reservation.room_id.equipment_ids
+            available = reservation.room_id.equipment_ids
+            missing = reservation.required_equipment_ids - available
             if missing:
                 raise ValidationError(
                     self.env._(
